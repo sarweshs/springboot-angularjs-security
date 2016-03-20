@@ -7,24 +7,32 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.sarwesh.springboot.model.User;
+import com.sarwesh.springboot.repository.UserRepository;
 import com.sarwesh.springboot.service.UserService;
  
-@Controller
+@RestController
 @RequestMapping("/admin")
 public class UserManagementRestController {
  
     @Autowired
     UserService userService;  //Service which will do all data retrieval/manipulation work
  
+    @Autowired
+    UserRepository userRepo;
     
+    @Autowired
+	private PasswordEncoder passwordEncoder;
     //-------------------Retrieve All Users--------------------------------------------------------
      
     @RequestMapping(value = "/user/", method = RequestMethod.GET)
@@ -59,19 +67,27 @@ public class UserManagementRestController {
     public ResponseEntity<Void> createUser(@RequestBody User user,    UriComponentsBuilder ucBuilder) {
         System.out.println("Creating User " + user.getUserName());
  
-        if (userService.isUserExist(user)) {
+        /*if (userService.isUserExist(user)) {
             System.out.println("A User with name " + user.getUserName() + " already exist");
             return new ResponseEntity<Void>(HttpStatus.CONFLICT);
         }
  
-        userService.saveUser(user);
+        userService.saveUser(user);*/
+        List<User> userList = userRepo.findByUserName(user.getUserName());
+		if (userList != null && !userList.isEmpty()) {
+            System.out.println("A User with name " + user.getUserName() + " already exist");
+            return new ResponseEntity<Void>(HttpStatus.CONFLICT);
+        }
+        //user.setPassword(password);
+        user.setPassword(passwordEncoder.encode("test"));
+        user.setCreatedBy(getPrincipal());
+        user.setStatus("ACTIVE");
+        userRepo.save(user);
  
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/user/{id}").buildAndExpand(user.getId()).toUri());
         return new ResponseEntity<Void>(headers, HttpStatus.CREATED);
     }
- 
-    
      
     //------------------- Update a User --------------------------------------------------------
      
@@ -124,4 +140,15 @@ public class UserManagementRestController {
         return new ResponseEntity<User>(HttpStatus.NO_CONTENT);
     }
  
+    private String getPrincipal(){
+		String userName = null;
+		Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+		if (principal instanceof UserDetails) {
+			userName = ((UserDetails)principal).getUsername();
+		} else {
+			userName = principal.toString();
+		}
+		return userName;
+	}
 }

@@ -5,12 +5,21 @@ App.controller('UserController', [
 		'UserService',
 		function($scope, UserService) {
 			var self = this;
+			self.roles = [ {
+				id : 1,
+				roleName : 'admin'
+			}, {
+				id : 2,
+				roleName : 'user'
+			} ];
 			self.user = {
 				id : null,
 				username : '',
 				address : '',
-				email : ''
+				email : '',
+				roles : []
 			};
+			
 			self.users = [];
 
 			self.fetchAllUsers = function() {
@@ -68,7 +77,7 @@ App.controller('UserController', [
 			self.remove = function(id) {
 				console.log('id to be deleted', id);
 				if (self.user.id === id) {// clean form if the user to be
-											// deleted is shown there.
+					// deleted is shown there.
 					self.reset();
 				}
 				self.deleteUser(id);
@@ -79,9 +88,24 @@ App.controller('UserController', [
 					id : null,
 					username : '',
 					address : '',
-					email : ''
+					email : '',
+					roles : []
 				};
 				$scope.myForm.$setPristine(); // reset Form
+			};
+
+			// Adding roles
+			$scope.checkAll = function() {
+				$scope.user.roles = $scope.roles.map(function(item) {
+					return item.id;
+				});
+			};
+			$scope.uncheckAll = function() {
+				$scope.user.roles = [];
+			};
+			$scope.checkFirst = function() {
+				$scope.user.roles.splice(0, $scope.user.roles.length);
+				$scope.user.roles.push(1);
 			};
 
 		} ]);
